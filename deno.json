@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@std/cli": "jsr:@std/cli@^0.224.7",
+    "tiny-segmenter": "npm:tiny-segmenter@^0.2.0"
+  }
+}

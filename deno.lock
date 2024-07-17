@@ -1,0 +1,27 @@
+{
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "jsr:@std/cli@^0.224.7": "jsr:@std/cli@0.224.7",
+      "npm:tiny-segmenter@^0.2.0": "npm:tiny-segmenter@0.2.0"
+    },
+    "jsr": {
+      "@std/cli@0.224.7": {
+        "integrity": "654ca6477518e5e3a0d3fabafb2789e92b8c0febf1a1d24ba4b567aba94b5977"
+      }
+    },
+    "npm": {
+      "tiny-segmenter@0.2.0": {
+        "integrity": "sha512-m+aTJQ/CUBKurLaJRpLmJiwcL+Gpkzft5ZYnRU9AkuO45Y/k/2iJmuLEbN1XLrq6N3kDVyIUCCeqRzQx0feBag==",
+        "dependencies": {}
+      }
+    }
+  },
+  "remote": {},
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/cli@^0.224.7",
+      "npm:tiny-segmenter@^0.2.0"
+    ]
+  }
+}
