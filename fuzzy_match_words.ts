@@ -7,7 +7,7 @@
 const kana = /[\u3040-\u309f\u30a0-\u30ff]/;
 const kanji = /[\u4e00-\u9faf\u3400-\u4dbf]/;
 
-export function substring_kanji(shorter: string, longer: string) {
+function substring_kanji(shorter: string, longer: string) {
   let val = 0;
   if (
     (kanji.test(shorter) && longer.includes(shorter)) ||
@@ -18,7 +18,7 @@ export function substring_kanji(shorter: string, longer: string) {
   return val;
 }
 
-export function substring_kana(shorter: string, longer: string) {
+function substring_kana(shorter: string, longer: string) {
   let val = 0;
   if (kana.test(shorter) && kana.test(longer) && shorter.length >= 3) {
     if (longer.includes(shorter)) {
@@ -28,21 +28,21 @@ export function substring_kana(shorter: string, longer: string) {
   return val;
 }
 
-export function substring_kanaprt(shorter: string, longer: string) {
-  const particles = [
-    "は",
-    "が",
-    "で",
-    "に",
-    "の",
-    "な",
-    "と",
-    "や",
-    "も",
-    "へ",
-    "お",
-    "ご",
-  ];
+const particles = [
+  "は",
+  "が",
+  "で",
+  "に",
+  "の",
+  "な",
+  "と",
+  "や",
+  "も",
+  "へ",
+  "お",
+  "ご",
+];
+function substring_kanaprt(shorter: string, longer: string) {
   const lenDiff = Math.abs(shorter.length - longer.length);
   let val = 0;
   if (lenDiff === 1) {
@@ -62,7 +62,7 @@ export function substring_kanaprt(shorter: string, longer: string) {
   return val;
 }
 
-export function verb_compound(shorter: string, longer: string) {
+function verb_compound(shorter: string, longer: string) {
   let val = 0;
   if (
     shorter.length >= 3 &&
@@ -81,7 +81,7 @@ export function verb_compound(shorter: string, longer: string) {
   return val;
 }
 
-export function kanji_compound(shorter: string, longer: string) {
+function kanji_compound(shorter: string, longer: string) {
   let val = 0;
   if (
     (kana.test(shorter) && kanji.test(shorter)) ||
@@ -102,8 +102,8 @@ export function kanji_compound(shorter: string, longer: string) {
 
     // Check the Kanji compounds as strings
     if (shorterKanjiChars[0] && longerKanjiChars[0]) {
-      let shorterKanji: string;
-      let longerKanji: string;
+      let shorterKanji;
+      let longerKanji;
       if (shorterKanjiChars.length < longerKanjiChars.length) {
         longerKanji = longerKanjiChars.join("");
         shorterKanji = shorterKanjiChars.join("");

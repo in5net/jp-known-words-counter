@@ -7,6 +7,7 @@
 import { parseArgs } from "@std/cli/parse-args";
 import TinySegmenter from "tiny-segmenter";
 import { match } from "./fuzzy_match_words.ts";
+import { auxillaries, grammar, modifiers, terms } from "./words.ts";
 
 const args = parseArgs(Deno.args, {
   string: ["known-words", "text", "delimiter", "column"],
@@ -32,22 +33,6 @@ if (!Number.isInteger(column)) throw new Error("Column must be a number!");
 const knownWordsText = await Deno.readTextFile(knownWordsPath);
 // Split on new lines and assign the result
 const knownWordsArr = knownWordsText.split(/\r?\n/);
-
-/* Return a unique array - Source: https://stackoverflow.com/a/9229821 */
-function uniq_fast<T>(a: T[]) {
-  const seen: Record<any, number> = {};
-  const out: T[] = [];
-  const len = a.length;
-  let j = 0;
-  for (let i = 0; i < len; i++) {
-    const item = a[i];
-    if (seen[item] !== 1) {
-      seen[item] = 1;
-      out[j++] = item;
-    }
-  }
-  return out;
-}
 
 const segmenter = new TinySegmenter();
 let segs: string[] = [];
@@ -324,715 +309,21 @@ function processComparisonText() {
   segs = uniq_fast(segs);
 }
 
-// Most common words (pronouns, verbs, positions), disconnected verb/adjective auxillaries, particles, and counters, quantifiers and numbers
-const grammar = [
-  "ては",
-  "では",
-  "ので",
-  "たい",
-  "まま",
-  "もし",
-  "なら",
-  "から",
-  "より",
-  "まで",
-  "だった",
-  "でした",
-  "ほど",
-  "たり",
-  "とも",
-  "かしら",
-  "わけ",
-  "べき",
-  "べく",
-  "しつつ",
-  "つつ",
-  "ます",
-  "おける",
-  "ずつ",
-  "なし",
-  "にて",
-  "なの",
-  "っぽい",
-  "っぽく",
-  "らしい",
-  "らしく",
-  "らしき",
-  "しか",
-  "だけ",
-  "のみ",
-  "にも",
-  "にか",
-  "なのに",
-  "のに",
-  "のかな",
-  "のか",
-  "かな",
-  "かの",
-  "かも",
-  "よね",
-  "なと",
-  "から",
-];
-const terms = [
-  "なに",
-  "なん",
-  "何",
-  "なにか",
-  "なんか",
-  "ない",
-  "した",
-  "いいえ",
-  "いや",
-  "行く",
-  "行き",
-  "こう",
-  "そう",
-  "はい",
-  "こと",
-  "事",
-  "もの",
-  "物",
-  "なく",
-  "なんと",
-  "いつ",
-  "格好いい",
-  "かっこいい",
-  "カッコイイ",
-  "かわいい",
-  "可愛い",
-  "みる",
-  "おすすめ",
-  "オススメ",
-  "おく",
-  "ほう",
-  "まず",
-  "そのほう",
-  "ほら",
-  "水",
-  "際",
-  "さて",
-  "さま",
-  "さん",
-  "くん",
-  "ちゃん",
-  "笑",
-  "心",
-  "ひとつ",
-  "かも",
-  "だわ",
-  "だね",
-  "だよ",
-  "すし",
-  "わが",
-  "今",
-  "いま",
-  "為",
-  "見る",
-  "見ます",
-  "みます",
-  "見ません",
-  "みません",
-  "くる",
-  "来る",
-  "きて",
-  "来て",
-  "きます",
-  "来ます",
-  "きません",
-  "来ません",
-  "うん",
-  "そば",
-  "いく",
-  "まあ",
-  "今回",
-  "今度",
-  "今日",
-  "今年",
-  "ことし",
-  "彼女",
-  "彼",
-  "我",
-  "見せる",
-  "君",
-  "つく",
-  "いう",
-  "方",
-  "例",
-  "いか",
-  "なか",
-  "ふーん",
-  "きもち",
-  "もう",
-  "ごめん",
-  "いなかった",
-  "しかない",
-  "しかなかった",
-];
-const auxillaries = [
-  "まして",
-  "ました",
-  "なくて",
-  "なかった",
-  "させる",
-  "られる",
-  "ありませ",
-  "いませ",
-  "たうえ",
-  "とかそういう",
-  "はすぐ",
-  "といて",
-  "そのほか",
-  "なだけ",
-  "・",
-  "もらい",
-  "により",
-  "はいか",
-  "しまい",
-  "ながらこう",
-  "ながらそう",
-  "ものの",
-  "ことの",
-  "わかり",
-  "にかけ",
-  "その後さら",
-  "ときや",
-  "こうし",
-  "なけれ",
-  "はいえ",
-  "がほぼ",
-  "だけど",
-  "のいま",
-  "いいじゃ",
-  "ときも",
-  "なおこれ",
-  "でいき",
-  "いれる",
-  "ままで",
-  "じゃん",
-  "みましょ",
-  "ましょ",
-  "しましょ",
-  "ここから",
-  "わから",
-  "までき",
-  "ならず",
-  "なもの",
-  "それも",
-  "なさい",
-  "そうし",
-  "こうし",
-  "あるけれど",
-  "につい",
-  "たりし",
-  "といって",
-  "おこう",
-  "やその",
-  "できれ",
-  "たりすれ",
-  "やすく",
-  "いたら",
-  "ならば",
-  "すぎて",
-  "がれる",
-  "きませ",
-  "いきませ",
-  "いいくらい",
-  "できず",
-  "できませ",
-  "らじる",
-  "にして",
-  "によれ",
-  "ですけど",
-  "もらえ",
-  "といえば",
-  "しちゃい",
-  "それじゃ",
-  "これじゃ",
-  "たりして",
-  "だりして",
-  "もらっちゃ",
-  "にすれ",
-  "はいませ",
-  "いって",
-  "わかり",
-  "いえる",
-  "はじめ",
-  "たらすぐ",
-  "はいって",
-  "こんにち",
-  "こんばん",
-  "もらって",
-  "いいんじゃ",
-  "たらまた",
-  "したい",
-  "やりたい",
-  "はして",
-  "がして",
-  "いただき",
-  "しゃい",
-  "しませ",
-  "こられ",
-  "そられ",
-  "いられ",
-  "ござい",
-  "しづらい",
-  "ますしね",
-  "ますか",
-  "ません",
-  "ませんか",
-  "なって",
-  "にいき",
-  "てるんで",
-  "てるんだ",
-  "てるん",
-  "されて",
-  "やった",
-  "やって",
-  "やってて",
-  "やってた",
-  "すれば",
-  "てきた",
-  "やれば",
-  "させた",
-  "にきて",
-  "でいた",
-  "でみた",
-  "てみた",
-  "なった",
-  "なかった",
-  "みれば",
-  "かかった",
-  "やろう",
-  "かなと",
-  "ありま",
-  "いりま",
-  "といけ",
-  "もって",
-  "あって",
-  "やまない",
-  "とって",
-  "られる",
-  "やれる",
-  "といった",
-  "ますよね",
-  "なきゃ",
-  "にいろ",
-  "みせる",
-  "たよな",
-  "たよね",
-  "だよな",
-  "だよね",
-  "おいて",
-  "おいた",
-  "かかり",
-  "たかった",
-  "られて",
-  "られた",
-  "なろう",
-  "たって",
-  "みせて",
-  "らえる",
-  "なくても",
-  "いなくて",
-  "られま",
-  "いた方",
-  "もたち",
-  "いました",
-  "がれて",
-  "いきま",
-  "いれば",
-  "かけて",
-  "にかけて",
-  "かけていた",
-  "かかって",
-  "あとに",
-  "しろよ",
-  "られれば",
-  "ていて",
-  "おらず",
-  "なわれ",
-  "があり",
-  "もあり",
-  "たくて",
-  "にいた",
-  "てきま",
-  "がいなく",
-  "なれば",
-  "いった",
-  "てくれ",
-  "うーん",
-  "かって",
-  "ついた",
-  "もほか",
-  "かけた",
-  "らった",
-  "たちの",
-  "てみて",
-  "とおり",
-  "がわかり",
-  "られます",
-  "ながった",
-  "わかって",
-  "ごろから",
-  "ごろな",
-  "して",
-  "してます",
-  "している",
-  "していました",
-  "していない",
-  "していません",
-  "していた",
-  "していて",
-  "してて",
-  "します",
-  "しました",
-  "とみて",
-  "でさえ",
-  "いまから",
-  "ろうなぁ",
-  "ぎませ",
-  "ちませ",
-  "にませ",
-  "びませ",
-  "みませ",
-  "りませ",
-  "いましょ",
-  "きましょ",
-  "ぎましょ",
-  "ちましょ",
-  "にましょ",
-  "りましょ",
-  "いじゃう",
-  "いすぎる",
-  "いちゃう",
-  "いなさい",
-  "きすぎる",
-  "ぎすぎる",
-  "きちゃう",
-  "きなさい",
-  "ぎなさい",
-  "こさせる",
-  "こられる",
-  "しすぎる",
-  "しちゃう",
-  "しなさい",
-  "ちすぎる",
-  "ちなさい",
-  "っちゃう",
-  "にすぎる",
-  "なさい",
-  "にません",
-  "びすぎる",
-  "びなさい",
-  "みすぎる",
-  "みなさい",
-  "りすぎる",
-  "りなさい",
-  "んじゃう",
-  "いそう",
-  "いたい",
-  "いだら",
-  "いたり",
-  "かせる",
-  "がせる",
-  "かない",
-  "かれる",
-  "きそう",
-  "ぎそう",
-  "ぎたい",
-  "きたり",
-  "こない",
-  "こよう",
-  "これる",
-  "しそう",
-  "しよう",
-  "すぎる",
-  "たせる",
-  "たれる",
-  "ちそう",
-  "ちたい",
-  "ちゃう",
-  "なさい",
-  "なせる",
-  "なない",
-  "なれる",
-  "ばせる",
-  "ばれる",
-  "びそう",
-  "びたい",
-  "ませる",
-  "ません",
-  "まない",
-  "まれる",
-  "みそう",
-  "みたい",
-  "らせる",
-  "られる",
-  "りそう",
-  "りたい",
-  "わせる",
-  "われる",
-  "んだら",
-  "んだり",
-  "なられて",
-  "はわかって",
-  "いません",
-  "しして",
-  "であり",
-  "なくして",
-  "もんね",
-  "なりかねない",
-  "いけば",
-  "おけば",
-  "よなあ",
-  "できそう",
-  "なりそう",
-  "きました",
-  "がいて",
-  "りします",
-  "りする",
-  "がって",
-  "しょうか",
-  "にせよ",
-  "でして",
-  "くなり",
-  "もいる",
-];
-const modifiers = [
-  "一",
-  "二",
-  "三",
-  "四",
-  "伍",
-  "六",
-  "七",
-  "七",
-  "八",
-  "九",
-  "十",
-  "関",
-  "前",
-  "まえ",
-  "次",
-  "後",
-  "あと",
-  "時",
-  "とき",
-  "上",
-  "うえ",
-  "下",
-  "した",
-  "右",
-  "左",
-  "中",
-  "別",
-  "他",
-  "ただ",
-  "だけ",
-  "たち",
-  "たび",
-  "人",
-  "カ月",
-  "用",
-  "向け",
-  "率",
-  "日",
-  "月",
-  "年",
-  "内",
-  "外",
-  "方",
-  "者",
-  "市",
-  "県",
-  "側",
-  "以内",
-  "以上",
-  "以下",
-  "おおよそ",
-  "およそ",
-  "型",
-  "式",
-  "第",
-  "代",
-  "約",
-  "円",
-  "的",
-  "量",
-  "非",
-  "不",
-  "系",
-  "化",
-  "台",
-  "版",
-  "おそらく",
-  "術",
-  "女",
-  "男",
-  "子",
-  "歳",
-  "才",
-  "ごろ",
-  "区",
-  "性",
-  "御",
-  "部",
-  "分",
-  "初",
-  "新",
-  "つ",
-  "杯",
-  "匹",
-  "本",
-  "階",
-  "個",
-  "箇",
-  "个",
-  "ヶ",
-  "枚",
-  "名",
-  "面",
-  "冊",
-  "話",
-  "秒",
-  "月",
-  "泊",
-  "時間",
-  "箇月",
-  "週",
-  "倍",
-  "番",
-  "度",
-  "畳",
-  "場",
-  "倍",
-  "晩",
-  "番",
-  "尾",
-  "文",
-  "秒",
-  "着",
-  "挺",
-  "丁",
-  "町",
-  "代",
-  "段",
-  "段落",
-  "筆",
-  "服",
-  "幅",
-  "振",
-  "学級",
-  "語",
-  "合",
-  "言",
-  "具",
-  "泊",
-  "敗",
-  "箱",
-  "張",
-  "柱",
-  "発",
-  "品",
-  "筆",
-  "歩",
-  "票",
-  "拍子",
-  "字",
-  "児",
-  "錠",
-  "条",
-  "架",
-  "課",
-  "株",
-  "回",
-  "ヶ国",
-  "箇国",
-  "画",
-  "貫",
-  "艦",
-  "系統",
-  "件",
-  "軒",
-  "機",
-  "基",
-  "斤",
-  "戸",
-  "校",
-  "稿",
-  "行",
-  "齣",
-  "コマ",
-  "献",
-  "句",
-  "口",
-  "組",
-  "脚",
-  "客",
-  "曲",
-  "局",
-  "枚",
-  "巻",
-  "幕",
-  "門",
-  "問",
-  "折",
-  "頁",
-  "例",
-  "礼",
-  "輪",
-  "両",
-  "棹",
-  "冊",
-  "席",
-  "隻",
-  "品",
-  "社",
-  "式",
-  "勝",
-  "首",
-  "週",
-  "種",
-  "足",
-  "双",
-  "束",
-  "体",
-  "俵",
-  "滴",
-  "点",
-  "頭",
-  "通",
-  "坪",
-  "粒",
-  "通話",
-  "羽",
-  "把",
-  "話",
-  "夜",
-  "膳",
-  "州",
-  "超",
-  "似",
-  "もう",
-  "全",
-  "小",
-  "大",
-  "ころ",
-  "誌",
-  "師",
-  "地",
-  "症",
-  "頃",
-  "比",
-  "旧",
-  "坂",
-  "税",
-  "再",
-  "底",
-  "月号",
-  "号",
-];
+/* Return a unique array - Source: https://stackoverflow.com/a/9229821 */
+function uniq_fast<T>(a: T[]) {
+  const seen = {};
+  const out: T[] = [];
+  const len = a.length;
+  let j = 0;
+  for (let i = 0; i < len; i++) {
+    const item = a[i];
+    if (seen[item] !== 1) {
+      seen[item] = 1;
+      out[j++] = item;
+    }
+  }
+  return out;
+}
 
 // Concat the above arrays into groups
 const jpStopWords_base = [...grammar, ...terms];
@@ -1043,7 +334,6 @@ const jaTest =
   /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/;
 const hiragana = /[\u3040-\u309f]/;
 const katakana = /[\u30a0-\u30ff]/;
-const kana = /[\u3040-\u309f\u30a0-\u30ff]/;
 const kanji = /[\u4e00-\u9faf\u3400-\u4dbf]/;
 const punctuation =
   /[\u3000-\u303f]|[\uff00-\uff9f]|[・`~!@#$%^&*()_\-+=\]\[}{';":\/?.>,<]|[\d]/;
@@ -1090,20 +380,18 @@ function testBanned(term: string) {
 // Purify terms of unnecessary parts
 const puncReg = new RegExp(punctuation, "g");
 const alphabetRegex = new RegExp(/[A-Za-z]/, "g");
+const suruFormsRegex =
+  /する|しない|します|しません|される|されない|されます|させる|させない/g;
 function purify(term: string) {
-  // cache term, in case it becomes undefined
-  const c_term = term;
-  // Remove punctuation
-  term = term.replace(puncReg, "");
-  // Remove English
-  term = term.replace(alphabetRegex, "");
-  // Remove ending する verbs...
-  term.replace(
-    /する|しない|します|しません|される|されない|されます|させる|させない/g,
-    "",
+  return (
+    term
+      // Remove punctuation
+      .replace(puncReg, "")
+      // Remove English
+      .replace(alphabetRegex, "")
+      // Remove ending する verbs...
+      .replace(suruFormsRegex, "")
   );
-  if (!term) return c_term;
-  else return term;
 }
 
 // Non-blocking Comparison Setup
@@ -1113,18 +401,10 @@ let matches = 0; // Matches out of total
 let newWords: string[] = []; // Record unknown words
 let outIndex = 0; // Top comparison loop
 let inIndex = 0; // Inside comparison loop
-let chunk = 10000; // How many comparisons to do at once, so as to be non-blocking (asynchronous)
-let promises: Promise<void>[] = []; // Record comparison chunk as a promise for callback (and so as to prevent result overflow and bleeding?)
 function compare() {
-  if (!knownWordsArr || knownWordsArr.length <= 0) {
-    return alert("A List of Known Words is Required!");
-  }
   if (!knownWordsArr[1].split(delimiter)[column]) {
     // Check 1 and not 0, in case of CSV header comment
     return alert("Delimiter and/or Column are Incorrect!");
-  }
-  if (!segs || segs.length <= 0) {
-    return alert("A Japanese Text is Required!");
   }
 
   // Setup comparison values, and start comparison
@@ -1135,13 +415,18 @@ function compare() {
   newWords = [];
   outIndex = 0;
   inIndex = 0;
-  promises = [];
   outsideComparison(outIndex, inIndex);
 }
 
+let lastDisplayAt = new Date(0);
+
 function outsideComparison(outIndex: number, inIndex = 0) {
-  // Display result & new words
-  displayResult(matches, total, newWords);
+  if (new Date().getTime() - lastDisplayAt.getTime() > 250) {
+    displayResult();
+    lastDisplayAt = new Date();
+  }
+
+  if (outIndex >= segs.length) return;
 
   // Early out if term is banned
   if (testBanned(segs[outIndex])) {
@@ -1150,89 +435,73 @@ function outsideComparison(outIndex: number, inIndex = 0) {
     return outsideComparison(outIndex);
   }
 
-  promises = [];
-  promises.push(insideComparison(outIndex, inIndex, chunk));
-  Promise.race(promises).then(() => {
-    if (outIndex < segs.length) {
-      outIndex++;
-      outsideComparison(outIndex);
-    }
-  });
+  insideComparison(outIndex, inIndex);
+  if (outIndex < segs.length) {
+    outIndex++;
+    outsideComparison(outIndex);
+  }
 }
 
-function insideComparison(outIndex: number, inIndex: number, chunk: number) {
-  const c_session = session; // cache the current session
-  let c_chunk = chunk; // cache the current chunk size
-  return new Promise<void>((resolve) => {
-    setTimeout(() => {
-      while (c_chunk-- && inIndex < knownWordsArr.length) {
-        // Stop processing if new processing session has started
-        if (c_session !== session) return (c_chunk = 0);
+function insideComparison(outIndex: number, inIndex: number) {
+  while (inIndex < knownWordsArr.length) {
+    // Whether current process should resolve
+    let shouldResolve = false;
 
-        // Whether current process should resolve
-        let shouldResolve = false;
+    // Current known word
+    let wordListWord = knownWordsArr[inIndex].split(delimiter)[column];
 
-        // Current known word
-        let wordListWord = knownWordsArr[inIndex].split(delimiter)[column];
+    // ERROR REDUNDANCY FOR MALFORMED KNOWN WORD FILE ROWS
+    // If word cannot be found, go to next word
+    // Or, record new word if end of index
+    if (!wordListWord && inIndex < knownWordsArr.length - 1) {
+      inIndex++;
+      return outsideComparison(outIndex, inIndex);
+    } else if (!wordListWord) {
+      inIndex++;
+      newWords.push(segs[outIndex]);
+      return;
+    }
 
-        // ERROR REDUNDANCY FOR MALFORMED KNOWN WORD FILE ROWS
-        // If word cannot be found, go to next word
-        // Or, record new word if end of index
-        if (!wordListWord && inIndex < knownWordsArr.length - 1) {
-          inIndex++;
-          return outsideComparison(outIndex, inIndex);
-        } else if (!wordListWord) {
-          inIndex++;
-          newWords.push(segs[outIndex]);
-          return resolve();
-        }
+    // Clean known word of unneeded data
+    wordListWord = purify(wordListWord);
 
-        // Clean known word of unneeded data
-        wordListWord = purify(wordListWord);
+    // Compare until any equal match is found
+    const result = match(wordListWord, segs[outIndex]);
 
-        // Compare until any equal match is found
-        const result = match(wordListWord, segs[outIndex]);
+    // 1 and 2 Character Compounds must be 100%
+    if (segs[outIndex].length <= 2 && result >= 100) {
+      matches++;
+      shouldResolve = true;
+    }
+    // Otherwise, be 60% or above
+    else if (segs[outIndex].length >= 2 && result >= 60) {
+      matches++;
+      shouldResolve = true;
+    }
+    // Record new words
+    else if (inIndex >= knownWordsArr.length - 1) {
+      newWords.push(segs[outIndex]);
+      shouldResolve = true;
+    }
 
-        // 1 and 2 Character Compounds must be 100%
-        if (segs[outIndex].length <= 2 && result >= 100) {
-          matches++;
-          shouldResolve = true;
-        }
-        // Otherwise, be 60% or above
-        else if (segs[outIndex].length >= 2 && result >= 60) {
-          matches++;
-          shouldResolve = true;
-        }
-        // Record new words
-        else if (inIndex >= knownWordsArr.length - 1) {
-          newWords.push(segs[outIndex]);
-          shouldResolve = true;
-        }
+    inIndex++;
 
-        inIndex++;
-
-        if (shouldResolve) {
-          return resolve();
-        }
-
-        // next chunk
-        if (c_chunk === 0) {
-          outsideComparison(outIndex, inIndex);
-        }
-      }
-    }, 1);
-  });
+    if (shouldResolve) {
+      return;
+    }
+  }
 }
 
 const encoder = new TextEncoder();
-function displayResult(matches: number, total: number, newWords: string[]) {
+function displayResult() {
   const resultPercent = Math.floor((matches / total) * 100) || 0;
   Deno.stdout.writeSync(
     encoder.encode(
-      `\r${matches} / ${total} (${resultPercent}%), ${newWords.length} new words`,
+      `\r${matches} / ${total} (${resultPercent}% known), ${newWords.length} new words`,
     ),
   );
 }
 
 processComparisonText();
 compare();
+displayResult();
