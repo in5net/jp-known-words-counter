@@ -8,62 +8,45 @@ const kana = /[\u3040-\u309f\u30a0-\u30ff]/;
 const kanji = /[\u4e00-\u9faf\u3400-\u4dbf]/;
 
 function substring_kanji(shorter: string, longer: string) {
-  let val = 0;
   if (
     (kanji.test(shorter) && longer.includes(shorter)) ||
     (kanji.test(longer) && longer.includes(shorter))
   ) {
-    val = Math.floor((shorter.length / longer.length) * 100);
+    return Math.floor((shorter.length / longer.length) * 100);
   }
-  return val;
+  return 0;
 }
 
 function substring_kana(shorter: string, longer: string) {
-  let val = 0;
   if (kana.test(shorter) && kana.test(longer) && shorter.length >= 3) {
     if (longer.includes(shorter)) {
-      val = Math.floor((shorter.length / longer.length) * 100);
+      return Math.floor((shorter.length / longer.length) * 100);
     }
   }
-  return val;
+  return 0;
 }
 
-const particles = [
-  "は",
-  "が",
-  "で",
-  "に",
-  "の",
-  "な",
-  "と",
-  "や",
-  "も",
-  "へ",
-  "お",
-  "ご",
-];
+const particles = "はがでにのなとやもへおご";
 function substring_kanaprt(shorter: string, longer: string) {
   const lenDiff = Math.abs(shorter.length - longer.length);
-  let val = 0;
   if (lenDiff === 1) {
-    if (particles.indexOf(longer[0]) > -1) {
+    if (particles.includes(longer[0])) {
       const c_longer = longer.slice(1);
       if (c_longer === shorter) {
-        val = 100;
+        return 100;
       }
     }
-    if (particles.indexOf(longer[longer.length - 1]) > -1) {
+    if (particles.includes(longer[longer.length - 1])) {
       const c_longer = longer.slice(0, -1);
       if (c_longer === shorter) {
-        val = 100;
+        return 100;
       }
     }
   }
-  return val;
+  return 0;
 }
 
 function verb_compound(shorter: string, longer: string) {
-  let val = 0;
   if (
     shorter.length >= 3 &&
     longer.length >= 3 &&
@@ -76,13 +59,12 @@ function verb_compound(shorter: string, longer: string) {
     shorter[0] === longer[0] &&
     shorter[2] === longer[2]
   ) {
-    val = 100;
+    return 100;
   }
-  return val;
+  return 0;
 }
 
 function kanji_compound(shorter: string, longer: string) {
-  let val = 0;
   if (
     (kana.test(shorter) && kanji.test(shorter)) ||
     (kana.test(longer) && kanji.test(longer))
@@ -114,15 +96,15 @@ function kanji_compound(shorter: string, longer: string) {
 
       // Check whether both Kanji strings are the same, and if so, return a full match (Kanji > Kana)
       if (shorterKanji === longerKanji) {
-        val = 100;
+        return 100;
       }
       // Check for partial matches by sub string for compounds of 2 or more length by shortest
-      else if (shorterKanji.length >= 2 && longerKanji.includes(shorterKanji)) {
-        val = Math.floor((shorterKanji.length / longerKanji.length) * 100);
+      if (shorterKanji.length >= 2 && longerKanji.includes(shorterKanji)) {
+        return Math.floor((shorterKanji.length / longerKanji.length) * 100);
       }
     }
   }
-  return val;
+  return 0;
 }
 
 // 0 to 100% (0 no match, 100 perfect match)
