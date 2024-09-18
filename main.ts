@@ -153,12 +153,13 @@ function insideComparison(outIndex: number, inIndex: number) {
     // ERROR REDUNDANCY FOR MALFORMED KNOWN WORD FILE ROWS
     // If word cannot be found, go to next word
     // Or, record new word if end of index
+    const seg = segs[outIndex];
     if (!wordListWord && inIndex < knownWordsArr.length - 1) {
       inIndex++;
       return outsideComparison(outIndex, inIndex);
     } else if (!wordListWord) {
       inIndex++;
-      newWords.push(segs[outIndex]);
+      newWords.push(seg);
       return;
     }
 
@@ -166,21 +167,21 @@ function insideComparison(outIndex: number, inIndex: number) {
     wordListWord = purify(wordListWord);
 
     // Compare until any equal match is found
-    const result = match(wordListWord, segs[outIndex]);
+    const result = match(wordListWord, seg);
 
     // 1 and 2 Character Compounds must be 100%
-    if (segs[outIndex].length <= 2 && result >= 100) {
+    if (seg.length <= 2 && result >= 100) {
       matches++;
       shouldResolve = true;
     }
     // Otherwise, be 60% or above
-    else if (segs[outIndex].length >= 2 && result >= 60) {
+    else if (seg.length >= 2 && result >= 60) {
       matches++;
       shouldResolve = true;
     }
     // Record new words
     else if (inIndex >= knownWordsArr.length - 1) {
-      newWords.push(segs[outIndex]);
+      newWords.push(seg);
       shouldResolve = true;
     }
 
