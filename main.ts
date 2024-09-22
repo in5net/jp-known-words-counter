@@ -43,6 +43,13 @@ if (!Number.isInteger(column)) throw new Error("Column must be a number!");
 const knownWordsText = await Deno.readTextFile(knownWordsPath);
 // Split on new lines and assign the result
 const knownWordsArr = knownWordsText.split(/\r?\n/);
+if (!knownWordsArr[1].split(delimiter)[column]) {
+  // Check 1 and not 0, in case of CSV header comment
+  alert("Delimiter and/or Column are Incorrect!");
+}
+const knownWords = knownWordsArr
+  .map((row) => row.split(delimiter)[column])
+  .filter(Boolean);
 
 // Concat the above arrays into groups
 const jpStopWords_base = [...grammar, ...terms];
@@ -89,16 +96,19 @@ function testBanned(term: string) {
 }
 
 // Purify terms of unnecessary parts
+const purifyCache = new Map<string, string>();
 function purify(term: string) {
-  return (
-    term
-      // Remove punctuation
-      .replace(puncReg, "")
-      // Remove English
-      .replace(alphabetRegex, "")
-      // Remove ending する verbs...
-      .replace(suruFormsRegex, "")
-  );
+  let purified = purifyCache.get(term);
+  if (purified) return purified;
+  purified = term
+    // Remove punctuation
+    .replace(puncReg, "")
+    // Remove English
+    .replace(alphabetRegex, "")
+    // Remove ending する verbs...
+    .replace(suruFormsRegex, "");
+  purifyCache.set(term, purified);
+  return purified;
 }
 
 const segs = processComparisonText(text);
@@ -107,61 +117,38 @@ const segs = processComparisonText(text);
 let total = segs.length; // Matches out of total
 let matches = 0; // Matches out of total
 const newWords: string[] = []; // Record unknown words
-const outIndex = 0; // Top comparison loop
-const inIndex = 0; // Inside comparison loop
-function compare() {
-  if (!knownWordsArr[1].split(delimiter)[column]) {
-    // Check 1 and not 0, in case of CSV header comment
-    return alert("Delimiter and/or Column are Incorrect!");
-  }
-
-  outsideComparison(outIndex, inIndex);
-}
 
 let lastDisplayAt = new Date(0);
 
-function outsideComparison(outIndex: number, inIndex = 0) {
+function compare(segmentsIndex = 0, knownWordsIndex = 0) {
   if (new Date().getTime() - lastDisplayAt.getTime() > 250) {
     displayResult();
     lastDisplayAt = new Date();
   }
 
-  if (outIndex >= segs.length) return;
+  if (segmentsIndex >= segs.length) return;
 
   // Early out if term is banned
-  if (testBanned(segs[outIndex])) {
+  if (testBanned(segs[segmentsIndex])) {
     total--;
-    outIndex++;
-    return outsideComparison(outIndex);
+    return compare(segmentsIndex + 1);
   }
 
-  insideComparison(outIndex, inIndex);
-  if (outIndex < segs.length) {
-    outIndex++;
-    outsideComparison(outIndex);
+  compareSegment(segmentsIndex, knownWordsIndex);
+  if (segmentsIndex < segs.length) {
+    compare(segmentsIndex + 1);
   }
 }
 
-function insideComparison(outIndex: number, inIndex: number) {
-  while (inIndex < knownWordsArr.length) {
+function compareSegment(segmentsIndex: number, knownWordsIndex: number) {
+  const seg = segs[segmentsIndex];
+  const segLength = seg.length;
+  while (knownWordsIndex < knownWords.length) {
     // Whether current process should resolve
-    let shouldResolve = false;
+    let shouldReturn = false;
 
     // Current known word
-    let wordListWord = knownWordsArr[inIndex].split(delimiter)[column];
-
-    // ERROR REDUNDANCY FOR MALFORMED KNOWN WORD FILE ROWS
-    // If word cannot be found, go to next word
-    // Or, record new word if end of index
-    const seg = segs[outIndex];
-    if (!wordListWord && inIndex < knownWordsArr.length - 1) {
-      inIndex++;
-      return outsideComparison(outIndex, inIndex);
-    } else if (!wordListWord) {
-      inIndex++;
-      newWords.push(seg);
-      return;
-    }
+    let wordListWord = knownWords[knownWordsIndex];
 
     // Clean known word of unneeded data
     wordListWord = purify(wordListWord);
@@ -170,24 +157,24 @@ function insideComparison(outIndex: number, inIndex: number) {
     const result = match(wordListWord, seg);
 
     // 1 and 2 Character Compounds must be 100%
-    if (seg.length <= 2 && result >= 100) {
+    if (segLength <= 2 && result >= 100) {
       matches++;
-      shouldResolve = true;
+      shouldReturn = true;
     }
     // Otherwise, be 60% or above
-    else if (seg.length >= 2 && result >= 60) {
+    else if (segLength >= 2 && result >= 60) {
       matches++;
-      shouldResolve = true;
+      shouldReturn = true;
     }
     // Record new words
-    else if (inIndex >= knownWordsArr.length - 1) {
+    else if (knownWordsIndex >= knownWords.length - 1) {
       newWords.push(seg);
-      shouldResolve = true;
+      shouldReturn = true;
     }
 
-    inIndex++;
+    knownWordsIndex++;
 
-    if (shouldResolve) {
+    if (shouldReturn) {
       return;
     }
   }
