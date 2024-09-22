@@ -113,71 +113,88 @@ function purify(term: string) {
 
 const segs = processComparisonText(text);
 
-// Non-blocking Comparison Setup
+// Comparison Setup
 let total = segs.length; // Matches out of total
 let matches = 0; // Matches out of total
 const newWords: string[] = []; // Record unknown words
 
 let lastDisplayAt = new Date(0);
 
-function compare(segmentsIndex = 0, knownWordsIndex = 0) {
+function compare(segmentIndex = 0, knownWordIndex = 0) {
   if (new Date().getTime() - lastDisplayAt.getTime() > 250) {
     displayResult();
     lastDisplayAt = new Date();
   }
 
-  if (segmentsIndex >= segs.length) return;
+  if (segmentIndex >= segs.length) return;
 
   // Early out if term is banned
-  if (testBanned(segs[segmentsIndex])) {
+  if (testBanned(segs[segmentIndex])) {
     total--;
-    return compare(segmentsIndex + 1);
+    segmentIndex++;
+    return compare(segmentIndex);
   }
 
-  compareSegment(segmentsIndex, knownWordsIndex);
-  if (segmentsIndex < segs.length) {
-    compare(segmentsIndex + 1);
-  }
+  compareSegment(segmentIndex, knownWordIndex).then(() => {
+    if (segmentIndex < segs.length) {
+      segmentIndex++;
+      compare(segmentIndex);
+    }
+  });
 }
 
-function compareSegment(segmentsIndex: number, knownWordsIndex: number) {
-  const seg = segs[segmentsIndex];
-  const segLength = seg.length;
-  while (knownWordsIndex < knownWords.length) {
-    // Whether current process should resolve
-    let shouldReturn = false;
+function compareSegment(segmentIndex: number, knownWordIndex: number) {
+  const segment = segs[segmentIndex];
+  const segmentLength = segment.length;
+  return new Promise<void>((resolve) => {
+    while (knownWordIndex < knownWords.length) {
+      // Whether current process should resolve
+      let shouldResolve = false;
 
-    // Current known word
-    let wordListWord = knownWords[knownWordsIndex];
+      // Current known word
+      let wordListWord = knownWords[knownWordIndex];
 
-    // Clean known word of unneeded data
-    wordListWord = purify(wordListWord);
+      // ERROR REDUNDANCY FOR MALFORMED KNOWN WORD FILE ROWS
+      // If word cannot be found, go to next word
+      // Or, record new word if end of index
+      if (!wordListWord && knownWordIndex < knownWords.length - 1) {
+        knownWordIndex++;
+        return compare(segmentIndex, knownWordIndex);
+      } else if (!wordListWord) {
+        knownWordIndex++;
+        newWords.push(segment);
+        return resolve();
+      }
 
-    // Compare until any equal match is found
-    const result = match(wordListWord, seg);
+      // Clean known word of unneeded data
+      wordListWord = purify(wordListWord);
 
-    // 1 and 2 Character Compounds must be 100%
-    if (segLength <= 2 && result >= 100) {
-      matches++;
-      shouldReturn = true;
+      // Compare until any equal match is found
+      const result = match(wordListWord, segment);
+
+      // 1 and 2 Character Compounds must be 100%
+      if (segmentLength <= 2 && result >= 100) {
+        matches++;
+        shouldResolve = true;
+      }
+      // Otherwise, be 60% or above
+      else if (segmentLength >= 2 && result >= 60) {
+        matches++;
+        shouldResolve = true;
+      }
+      // Record new words
+      else if (knownWordIndex >= knownWords.length - 1) {
+        newWords.push(segment);
+        shouldResolve = true;
+      }
+
+      knownWordIndex++;
+
+      if (shouldResolve) {
+        return resolve();
+      }
     }
-    // Otherwise, be 60% or above
-    else if (segLength >= 2 && result >= 60) {
-      matches++;
-      shouldReturn = true;
-    }
-    // Record new words
-    else if (knownWordsIndex >= knownWords.length - 1) {
-      newWords.push(seg);
-      shouldReturn = true;
-    }
-
-    knownWordsIndex++;
-
-    if (shouldReturn) {
-      return;
-    }
-  }
+  });
 }
 
 const encoder = new TextEncoder();
